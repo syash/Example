@@ -1,3 +1,13 @@
+typedef std::vector<var> varVector;
+
+typedef std::pair <std::string,
+                   std::vector<std::string> > operPair;
+
+
+typedef std::vector<operPair> operVector;
+
+
+
 struct ConstructVector : boost::static_visitor<void>
 {
     ConstructVector(operVector& vec_, varVector& vs) : _vec(vec_),
