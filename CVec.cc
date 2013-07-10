@@ -1,19 +1,23 @@
+struct operInfo
+{
+  std::string oper;
+  std::vector<std::string> flags;
+  int        precedence;
+};
+
 typedef std::vector<var> varVector;
-
-typedef std::pair <std::string,
-                   std::vector<std::string> > operPair;
-
-
-typedef std::vector<operPair> operVector;
-
-
+typedef std::vector<operInfo> operVector;
 
 struct ConstructVector : boost::static_visitor<void>
 {
-    ConstructVector(operVector& vec_, varVector& vs) : _vec(vec_),
-                                                       _vs(vs) {}
+    ConstructVector(operVector& vec_,
+                    varVector&  vs,
+                    int&        precedence): _vec(vec_),
+                                             _vs(vs),
+                                             _precedence(precedence) {}
     operVector& _vec;
     varVector&  _vs;
+    int&        _precedence;
 
     void operator()(const var& v) const {
        _vs.push_back(v);
@@ -29,19 +33,38 @@ struct ConstructVector : boost::static_visitor<void>
     void Insert(const std::string& op, const std::vector<expr>& vec) const
     {
         std::vector<expr>::const_iterator stIter, enditer;
+
+        ++ _precedence;
         for (stIter=vec.begin(); stIter != vec.end(); ++stIter) {
 
            boost::apply_visitor(*this, *stIter);
         }
-        _vec.push_back(std::make_pair(op, _vs));
+
+        operInfo oi;
+        oi.oper  = op;
+        oi.flags = (_vs);
+        oi.precedence =  _precedence;
+        _vec.push_back(oi);
+
+        _vec.push_back(oi);
         _vs.clear();
+        -- _precedence;
     }
 
     void operator()(const unop<op_not>& u) const
     {
-        boost::apply_visitor(*this, u.operand);
-        _vec.push_back(std::make_pair("NOT", _vs));
+        ++ _precedence;
 
-       _vs.clear();
+        boost::apply_visitor(*this, u.operand);
+
+        operInfo oi;
+        oi.oper  = "NOT";
+        oi.flags = _vs;
+        oi.precedence = _precedence;
+
+        _vec.push_back(oi);
+        _vs.clear();
+        -- _precedence;
+
     }
 };
